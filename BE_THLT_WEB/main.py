@@ -37,11 +37,11 @@ if loaded_secret_key: # Chỉ thực hiện các tác vụ phụ thuộc vào SE
 
     app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["https://lustrous-crostata-252b3f.netlify.app", "http://localhost"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-  )
+)
 
 @app.get("/")
 def root():
