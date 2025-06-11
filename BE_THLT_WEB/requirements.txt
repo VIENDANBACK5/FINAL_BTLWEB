@@ -1,1 +1,3 @@
-fastapi uvicorn[standard] gunicorn
+fastapi 
+uvicorn[standard] 
+gunicorn
