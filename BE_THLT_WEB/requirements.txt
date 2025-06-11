@@ -1,3 +1,10 @@
-fastapi 
-uvicorn[standard] 
+fastapi
+uvicorn[standard]
 gunicorn
+sqlalchemy
+pymysql              
+python-multipart     
+python-dotenv     
+passlib[bcrypt]      
+python-jose          
+alembic             
