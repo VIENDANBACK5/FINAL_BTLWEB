@@ -1,7 +1,7 @@
-from routers import auth_router, questions_router, answers_router, comments_router, votes_router, tags_router, user_router
-from databases import engine
-import models
-import utils
+from BE_THLT_WEB.routers import auth_router, questions_router, answers_router, comments_router, votes_router, tags_router, user_router
+from BE_THLT_WEB.databases import engine
+from BE_THLT_WEB import models
+from BE_THLT_WEB import utils
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
