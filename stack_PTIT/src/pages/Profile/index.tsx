@@ -33,8 +33,19 @@ const PublicProfile = () => {
 
       setLoading(true);
       try {
-        const response = await getUserById(params.id);
-        if (response.success && response.data) {
+        const response = await getUserById(isOwnProfile ? 'me' : params.id);
+        if (
+          response &&
+          typeof response === 'object' &&
+          'id' in response &&
+          'username' in response &&
+          'email' in response &&
+          'created_at' in response &&
+          'reputation' in response &&
+          'role' in response
+        ) {
+          setProfileUser(response as User);
+        } else if (response && 'data' in response && response.data && response.data.id) {
           setProfileUser(response.data);
         } else {
           message.error("Không thể tải thông tin người dùng");
@@ -156,11 +167,12 @@ const PublicProfile = () => {
   return (
     <div>
       <div className="flex items-center mb-6">
-        <Image width={150} height={150} src={profileUser.avatar} />
+        <Image width={150} height={150} src={profileUser.avatar || 'https://placehold.co/150?text=Avatar'} />
         <div className="flex justify-between items-center w-full">
           <div className="ml-4">
             <h1 className="font-bold text-3xl">{profileUser.username}</h1>
             <h2 className="text-gray-600 text-2xl">{profileUser.email}</h2>
+            <h3 className="text-gray-500 text-xl">{profileUser.title || ''}</h3>
             <p className="mt-2 text-lg">
               <UserOutlined className="mr-2" />
               {handleRole(profileUser.role ?? "")}
@@ -172,6 +184,9 @@ const PublicProfile = () => {
                   Tham gia được: {calculateJoinTime(profileUser.created_at)}
                 </p>
               </Tooltip>
+            </div>
+            <div className="mt-2 text-primary">
+              {profileUser.bio || "Chưa có thông tin giới thiệu"}
             </div>
           </div>
 

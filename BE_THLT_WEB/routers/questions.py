@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 from ..models import Question, Tag, QuestionTag, User, SaveQuestion
@@ -54,46 +54,60 @@ def create_question(
             "email": current_user.email,
             "reputation": current_user.reputation,
             "created_at": str(current_user.created_at) if current_user.created_at else None,
+            "role": getattr(current_user, "role", "student"),
         }
     }
 
 
-@router.get("", response_model=List[QuestionResponse])
-def get_questions(db: Session = Depends(get_db)):
-    questions = db.query(Question).options(
+@router.get("")
+def get_questions(
+    db: Session = Depends(get_db),
+    page: int = 1,
+    pageSize: int = 10,
+    sort: str = "newest",
+    filter: str = "all"
+):
+    query = db.query(Question).options(
         selectinload(Question.user),
         selectinload(Question.tags)
-    ).all()
-
-    return [
-        {
-            "id": q.id,
-            "user_id": q.user_id,
-            "title": q.title,
-            "content": q.content,
-            "views": q.views,
-            "upvotes": q.upvotes,
-            "downvotes": q.downvotes,
-            "status": q.status,
-            "user": {
-                "id": 0,
-                "username": "Ẩn danh",
-                "email": "",
-                "reputation": 0,
-                "created_at": None,
-            } if q.user is None else {
-                "id": q.user.id,
-                "username": q.user.username,
-                "email": q.user.email,
-                "reputation": q.user.reputation,
-                "created_at": str(q.user.created_at) if q.user.created_at else None,
-            },
-            "tags": [tag.name for tag in q.tags],
-            "created_at": str(q.created_at),
-            "updated_at": str(q.updated_at) if q.updated_at else None
-        }
-        for q in questions
-    ]
+    )
+    # Có thể bổ sung logic sort/filter ở đây nếu muốn
+    total = query.count()
+    questions = query.offset((page-1)*pageSize).limit(pageSize).all()
+    return {
+        "questions": [
+            {
+                "id": q.id,
+                "user_id": q.user_id,
+                "title": q.title,
+                "content": q.content,
+                "views": q.views,
+                "upvotes": q.upvotes,
+                "downvotes": q.downvotes,
+                "status": q.status,
+                "user": {
+                    "id": 0,
+                    "username": "Ẩn danh",
+                    "email": "",
+                    "reputation": 0,
+                    "created_at": None,
+                    "role": "student",
+                } if q.user is None else {
+                    "id": q.user.id,
+                    "username": q.user.username,
+                    "email": q.user.email,
+                    "reputation": q.user.reputation,
+                    "created_at": str(q.user.created_at) if q.user.created_at else None,
+                    "role": getattr(q.user, "role", "student"),
+                },
+                "tags": [tag.name for tag in q.tags],
+                "created_at": str(q.created_at),
+                "updated_at": str(q.updated_at) if q.updated_at else None
+            }
+            for q in questions
+        ],
+        "total": total
+    }
 
 
 
@@ -127,13 +141,16 @@ def get_question(question_id: int, db: Session = Depends(get_db)):
             "email": "",
             "reputation": 0,
             "created_at": None,
+            "role": "student",
         } if question.user is None else {
             "id": question.user.id,
             "username": question.user.username,
             "email": question.user.email,
             "reputation": question.user.reputation,
             "created_at": str(question.user.created_at) if question.user.created_at else None,
-        }
+            "role": getattr(question.user, "role", "student"),
+        },
+        "success": True, "data": question
     }
 
 
@@ -183,6 +200,7 @@ def update_question(question_id: int, question_data: QuestionCreate, db: Session
             "email": db_question.user.email if db_question.user else "",
             "reputation": db_question.user.reputation if db_question.user else 0,
             "created_at": str(db_question.user.created_at) if db_question.user and db_question.user.created_at else None,
+            "role": getattr(db_question.user, "role", "student"),
         }
     }
 
@@ -238,3 +256,38 @@ def get_questions_by_tag(tag_id: int, db: Session = Depends(get_db)):
     question_ids = [qt.question_id for qt in qtags]
     questions = db.query(Question).filter(Question.id.in_(question_ids)).all()
     return questions
+
+@router.get("/search/{keyword}")
+def search_questions(keyword: str, page: int = 1, pageSize: int = 10, db: Session = Depends(get_db)):
+    query = db.query(Question).filter(Question.title.ilike(f"%{keyword}%"))
+    total = query.count()
+    questions = query.offset((page-1)*pageSize).limit(pageSize).all()
+    return {"questions": questions, "total": total}
+
+@router.get("/search/suggestions/{keyword}")
+def search_suggestions(keyword: str, db: Session = Depends(get_db)):
+    # Lấy title chứa keyword
+    title_suggestions = db.query(Question.title).filter(Question.title.ilike(f"%{keyword}%")).limit(5).all()
+    # Lấy content chứa keyword
+    content_suggestions = db.query(Question.content).filter(Question.content.ilike(f"%{keyword}%")).limit(5).all()
+    result = []
+    title_set = set([s[0] for s in title_suggestions])
+    for s in title_suggestions:
+        result.append({"type": "title", "text": s[0]})
+    for s in content_suggestions:
+        content = s[0]
+        if content in title_set:
+            continue  # Không lặp lại nếu content trùng title
+        idx = content.lower().find(keyword.lower())
+        if idx != -1:
+            start = max(0, idx - 30)
+            end = min(len(content), idx + len(keyword) + 30)
+            snippet = content[start:end]
+            if start > 0:
+                snippet = "..." + snippet
+            if end < len(content):
+                snippet = snippet + "..."
+        else:
+            snippet = content[:60] + ("..." if len(content) > 60 else "")
+        result.append({"type": "content", "text": snippet})
+    return result

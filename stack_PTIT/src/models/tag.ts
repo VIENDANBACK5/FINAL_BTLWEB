@@ -119,18 +119,16 @@ export default () => {
             fetchTags();
             return;
         }
-
         try {
             setLoading(true);
             const result = await searchTags(filter);
-            if (result.success) {
-                setTags(result.data);
-                setCurrentPage(1); // Reset về trang đầu tiên khi tìm kiếm
+            if (Array.isArray(result)) {
+                setTags(result);
+                setCurrentPage(1);
             } else {
                 message.error("Không thể tìm kiếm tags");
             }
         } catch (error) {
-            console.error("Error searching tags:", error);
             message.error("Đã xảy ra lỗi khi tìm kiếm tags");
         } finally {
             setLoading(false);

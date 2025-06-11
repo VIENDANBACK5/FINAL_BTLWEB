@@ -9,13 +9,20 @@ class UserCreate(BaseModel):
     username: str
     email: str
     password: str
+    avatar: Optional[str] = None
+    bio: Optional[str] = None
+    title: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: int
     username: str
     email: str
-    # created_at: datetime
+    created_at: datetime
     reputation: int
+    role: str
+    avatar: Optional[str] = None
+    bio: Optional[str] = None
+    title: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -125,4 +132,14 @@ class TagResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class NotificationResponse(BaseModel):
+    id: int
+    user_id: int
+    content: str
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 

@@ -29,21 +29,24 @@ export default () => {
   // Fetch question detail
   const fetchQuestionDetail = useCallback(
     async (id: number) => {
-      if (id === currentQuestionId && question) {
-        return; // Tránh fetch lại nếu ID không thay đổi và question đã có data
-      }
-
+      console.log("GỌI FETCH VỚI ID:", id);
       setLoading(true);
       try {
         const result = await getQuestionDetail(id);
-        if (result?.success) {
+        console.log("KẾT QUẢ API:", result, "success:", result.success);
+        if (result && result.data && typeof result.data.id === 'number') {
           setQuestion(result.data);
+          console.log("SET QUESTION:", result.data);
           setCurrentQuestionId(id);
         } else {
+          setQuestion(null);
+          console.log("SET QUESTION: null");
           message.error("Không thể tải thông tin câu hỏi");
         }
       } catch (error) {
         console.error("Error fetching question details:", error);
+        setQuestion(null);
+        console.log("SET QUESTION: null (error)");
         message.error("Đã xảy ra lỗi khi tải thông tin câu hỏi");
       } finally {
         setLoading(false);

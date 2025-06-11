@@ -9,8 +9,8 @@ interface APIResponse<T> {
 }
 
 // Lấy danh sách thông báo
-export async function fetchNotifications(): Promise<APIResponse<Notification[]>> {
-  return request('/api/notifications', {
+export async function fetchNotifications(): Promise<Notification[]> {
+  return request(`${BASE_URL}/users/notifications`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -19,8 +19,8 @@ export async function fetchNotifications(): Promise<APIResponse<Notification[]>>
 }
 
 // Đánh dấu đã đọc một thông báo
-export async function markNotificationAsRead(notificationId: number): Promise<APIResponse<any>> {
-  return request(`/api/notifications/${notificationId}/read`, {
+export async function markNotificationAsRead(notificationId: number): Promise<any> {
+  return request(`${BASE_URL}/users/notifications/${notificationId}/read`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -28,9 +28,9 @@ export async function markNotificationAsRead(notificationId: number): Promise<AP
   });
 }
 
-// Đánh dấu đã đọc tất cả thông báo
-export async function markAllNotificationsAsRead(): Promise<APIResponse<any>> {
-  return request('/api/notifications/read-all', {
+// Đánh dấu đã đọc tất cả thông báo (nếu backend có)
+export async function markAllNotificationsAsRead(): Promise<any> {
+  return request(`${BASE_URL}/users/notifications/read-all`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${localStorage.getItem('token')}`,

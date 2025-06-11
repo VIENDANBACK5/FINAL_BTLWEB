@@ -17,6 +17,9 @@ class User(Base):
     comments = relationship("Comment", back_populates="user")
     votes = relationship("Vote", back_populates="user")
     role = Column(Enum("student", "teacher", "admin"), default="student")
+    avatar = Column(String(255), nullable=True)
+    bio = Column(Text, nullable=True)
+    title = Column(String(255), nullable=True)
 
 class Question(Base):
     __tablename__ = "questions"
@@ -100,3 +103,12 @@ class FollowTag(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     tag_id = Column(Integer, ForeignKey("tags.id"), primary_key=True)
     create_at = Column(DateTime)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(String(255), nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    user = relationship("User")

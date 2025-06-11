@@ -147,7 +147,7 @@ const AccountSetting: React.FC = () => {
           xóa vĩnh viễn tất cả dữ liệu liên quan đến tài khoản của bạn.
         </p>
         <p>
-          Vui lòng nhập <strong>{user?.username}</strong>{" "} đẻ xác nhận: 
+          Vui lòng nhập <strong>{user?.username || 'tài khoản'}</strong>{" "} đẻ xác nhận: 
         </p>
         <Input />
       </Modal>

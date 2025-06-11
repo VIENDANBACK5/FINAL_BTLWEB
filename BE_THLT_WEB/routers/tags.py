@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
-from ..models import Tag, User, FollowTag
+from ..models import Tag, User, FollowTag, QuestionTag
 from ..schemas import TagCreate, TagResponse
 from ..databases import get_db
 from ..utils import get_current_user
@@ -24,6 +25,19 @@ def create_tag(tag: TagCreate, db: Session = Depends(get_db), current_user: User
 def get_tags(db: Session = Depends(get_db)):
     tags = db.query(Tag).all()
     return tags
+
+@router.get("/with_count")
+def get_tags_with_count(db: Session = Depends(get_db)):
+    tag_counts = (
+        db.query(Tag.id, Tag.name, func.count(QuestionTag.question_id).label("count"))
+        .outerjoin(QuestionTag, Tag.id == QuestionTag.tag_id)
+        .group_by(Tag.id)
+        .all()
+    )
+    return [
+        {"id": t.id, "name": t.name, "count": t.count}
+        for t in tag_counts
+    ]
 
 # --- FOLLOW TAGS ---
 @router.get("/followed")
@@ -49,3 +63,8 @@ def unfollow_tag(tag_id: int, db: Session = Depends(get_db), current_user: User 
         db.delete(follow)
         db.commit()
     return {"detail": "Unfollowed"}
+
+@router.get("/search")
+def search_tags(keyword: str, db: Session = Depends(get_db)):
+    tags = db.query(Tag).filter(Tag.name.ilike(f"%{keyword}%")).all()
+    return tags

@@ -19,20 +19,21 @@ const TaggedQuestions: React.FC = () => {
   const { tags, loading: tagsLoading } = useModel('tag');
   
   const currentTag = tags.find(t => t.name === tagname);
+  const tagId = currentTag?.id;
 
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const response = await getQuestionsByTag({
-        tag: tagname || "",
-        page,
-        pageSize,
-        sort,
-        filter,
-      });
-      if (response?.data) {
-        setQuestions(response.data.questions || []);
-        setTotal(response.data.total || 0);
+      if (tagId) {
+        const response = await getQuestionsByTag(tagId);
+        console.log("API response:", response);
+        if (Array.isArray(response)) {
+          setQuestions(response);
+          setTotal(response.length);
+        } else if (response?.data) {
+          setQuestions(response.data.questions || response.data || []);
+          setTotal(response.data.total || response.data.length || 0);
+        }
       }
     } catch (error) {
       console.error("Error fetching questions:", error);

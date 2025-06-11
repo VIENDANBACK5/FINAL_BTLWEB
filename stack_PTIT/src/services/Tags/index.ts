@@ -9,9 +9,9 @@ interface APIResponse<T> {
   message?: string;
 }
 
-// Lấy danh sách tất cả các tags
+// Lấy danh sách tất cả các tags (có count)
 export async function getTags(): Promise<APIResponse<Tag[]>> {
-  return request(`${BASE_URL}/tags`, {
+  return request(`${BASE_URL}/tags/with_count`, {
     method: "GET",
   });
 }
@@ -24,7 +24,7 @@ export async function getTagById(id: number): Promise<APIResponse<Tag>> {
 }
 
 // Tìm kiếm tags
-export async function searchTags(keyword: string): Promise<APIResponse<Tag[]>> {
+export async function searchTags(keyword: string): Promise<Tag[]> {
   return request(`${BASE_URL}/tags/search`, {
     method: "GET",
     params: { keyword },

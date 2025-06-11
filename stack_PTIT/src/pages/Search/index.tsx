@@ -15,7 +15,8 @@ import {
   Divider,
   Select,
   InputNumber,
-  Form
+  Form,
+  Checkbox
 } from 'antd';
 import { SearchOutlined, MessageOutlined, HeartOutlined, CommentOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { searchQuestions } from '@/services/Search';
@@ -40,6 +41,7 @@ interface SearchCondition {
   type: 'text' | 'tag' | 'votes' | 'answers' | 'comments' | 'user';
   value: string | number;
   operator?: '>=' | '=' | 'contains' | '<=' | '<' | '>';
+  not?: boolean;
 }
 
 interface QuestionCardProps {
@@ -155,8 +157,13 @@ const SearchPage: React.FC = () => {
         setQuestions(response.data.questions);
         setTotal(response.data.total);
         setCurrentPage(response.data.page);
-        
         // Parse search query to extract filters
+        const parsedFilters = parseSearchQuery(query);
+        setFilters(parsedFilters);
+      } else if ('questions' in response && 'total' in response) {
+        setQuestions(response.questions as Question[]);
+        setTotal(Number(response.total));
+        setCurrentPage(page);
         const parsedFilters = parseSearchQuery(query);
         setFilters(parsedFilters);
       }
@@ -279,30 +286,31 @@ const SearchPage: React.FC = () => {
 
   const conditionsToQueryString = (conditions: SearchCondition[]): string => {
     const parts: string[] = [];
-    
     conditions.forEach(condition => {
+      let part = '';
       switch (condition.type) {
         case 'text':
-          parts.push(condition.value.toString());
+          part = condition.value.toString();
           break;
         case 'tag':
-          parts.push(`[${condition.value}]`);
+          part = `[${condition.value}]`;
           break;
         case 'votes':
-          parts.push(`votes${condition.operator}${condition.value}`);
+          part = `votes${condition.operator}${condition.value}`;
           break;
         case 'answers':
-          parts.push(`answers${condition.operator}${condition.value}`);
+          part = `answers${condition.operator}${condition.value}`;
           break;
         case 'comments':
-          parts.push(`comments${condition.operator}${condition.value}`);
+          part = `comments${condition.operator}${condition.value}`;
           break;
         case 'user':
-          parts.push(`user:${condition.value}`);
+          part = `user:${condition.value}`;
           break;
       }
+      if (condition.not) part = `not ${part}`;
+      parts.push(part);
     });
-    
     return parts.join(' ');
   };
 
@@ -356,8 +364,11 @@ const SearchPage: React.FC = () => {
 
   const performSearchWithConditions = async (conditions: SearchCondition[], page: number = 1) => {
     const queryString = conditionsToQueryString(conditions);
-    if (!queryString.trim()) return;
-    
+    if (!queryString.trim()) {
+      setQuestions([]);
+      setTotal(0);
+      return;
+    }
     setLoading(true);
     try {
       const response = await searchQuestions({
@@ -365,17 +376,24 @@ const SearchPage: React.FC = () => {
         page,
         pageSize,
       });
-      
-      if (response.success) {
+      if (response.success && response.data && Array.isArray(response.data.questions)) {
         setQuestions(response.data.questions);
-        setTotal(response.data.total);
-        setCurrentPage(response.data.page);
-        
-        // Convert conditions to filters for display
-        const parsedFilters = conditionsToSearchFilters(conditions);
-        setFilters(parsedFilters);
+        setTotal(response.data.total || 0);
+        setCurrentPage(response.data.page || 1);
+      } else if ('questions' in response && Array.isArray(response.questions)) {
+        setQuestions(response.questions);
+        setTotal(('total' in response && typeof response.total === 'number') ? response.total : 0);
+        setCurrentPage(page);
+      } else {
+        setQuestions([]);
+        setTotal(0);
       }
+      // Parse search query to extract filters
+      const parsedFilters = conditionsToSearchFilters(conditions);
+      setFilters(parsedFilters);
     } catch (error) {
+      setQuestions([]);
+      setTotal(0);
       console.error('Search error:', error);
     } finally {
       setLoading(false);
@@ -499,7 +517,7 @@ const SearchPage: React.FC = () => {
                   )}
                 </Col>
                 
-                <Col span={14}>
+                <Col span={12}>
                   {condition.type === 'votes' || condition.type === 'answers' || condition.type === 'comments' || condition.type === 'user' ? (
                     <InputNumber
                       value={condition.value as number}
@@ -535,6 +553,17 @@ const SearchPage: React.FC = () => {
                   >
                     Xóa
                   </Button>
+                </Col>
+                <Col span={2}>
+                  <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!condition.not}
+                      onChange={e => updateCondition(condition.id, { not: e.target.checked })}
+                      style={{ marginRight: 4 }}
+                    />
+                    <span style={{ fontSize: 12 }}>Phủ định</span>
+                  </div>
                 </Col>
               </Row>
             </Card>
@@ -595,22 +624,22 @@ const SearchPage: React.FC = () => {
 
     const getFilterDescription = (condition: SearchCondition) => {
       const operatorSymbol = getOperatorSymbol(condition.operator);
-      
+      let prefix = condition.not ? 'NOT ' : '';
       switch (condition.type) {
         case 'text':
-          return `Tìm trong tiêu đề/nội dung: "${condition.value}"`;
+          return `${prefix}Tìm trong tiêu đề/nội dung: "${condition.value}"`;
         case 'tag':
-          return `Tag: [${condition.value}]`;
+          return `${prefix}Tag: [${condition.value}]`;
         case 'votes':
-          return `Votes ${operatorSymbol} ${condition.value}`;
+          return `${prefix}Votes ${operatorSymbol} ${condition.value}`;
         case 'answers':
-          return `Answers ${operatorSymbol} ${condition.value}`;
+          return `${prefix}Answers ${operatorSymbol} ${condition.value}`;
         case 'comments':
-          return `Comments ${operatorSymbol} ${condition.value}`;
+          return `${prefix}Comments ${operatorSymbol} ${condition.value}`;
         case 'user':
-          return `User: ${condition.value}`;
+          return `${prefix}User: ${condition.value}`;
         default:
-          return `${condition.type} ${operatorSymbol} ${condition.value}`;
+          return `${prefix}${condition.type} ${operatorSymbol} ${condition.value}`;
       }
     };
     
@@ -619,7 +648,7 @@ const SearchPage: React.FC = () => {
         <Text strong>Điều kiện tìm kiếm đang áp dụng: </Text>
         <Space wrap>
           {activeConditions.map((condition, index) => (
-            <Tag key={index} color="blue">{getFilterDescription(condition)}</Tag>
+            <Tag key={index} color={condition.not ? 'orange' : 'geekblue'}>{getFilterDescription(condition)}</Tag>
           ))}
         </Space>
       </Card>
@@ -650,7 +679,8 @@ const SearchPage: React.FC = () => {
               </div>
               
               {questions.map(question => (
-                <QuestionCard key={question.id} question={question} />))}
+                <QuestionCard key={question.id} question={question} />
+              ))}
               
               {total > pageSize && (
                 <div className="mt-6 text-center">
