@@ -38,6 +38,7 @@ if loaded_secret_key: # Chỉ thực hiện các tác vụ phụ thuộc vào SE
     app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
+    allow_origins=["https://your-netlify-site.netlify.app", "http://localhost"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
