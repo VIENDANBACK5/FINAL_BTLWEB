@@ -27,6 +27,7 @@ const QuestionDetailPage = () => {
     isSubmittingAnswer,
     commentForms,
     submittingComments,
+    setQuestion,
   } = useModel('Question.questiondetail');
   
   // Sử dụng model savedQuestion
@@ -98,16 +99,18 @@ const QuestionDetailPage = () => {
   }
 
   // Hiển thị thông báo nếu không tìm thấy câu hỏi
-  if (!question) {
+  if (!question || typeof question !== 'object' || !question.id) {
     return (
       <div className="py-20 text-center">
-        <Title level={3}>Không tìm thấy câu hỏi này</Title>
+        <h2>Không tìm thấy câu hỏi này</h2>
         <Button type="primary" onClick={() => history.push("/questions")}>
           Quay lại danh sách câu hỏi
         </Button>
       </div>
     );
   }
+
+  console.log("QuestionContent nhận được:", question);
 
   // Sắp xếp câu trả lời với kiểm tra null/undefined và sử dụng upvotes - downvotes thay vì score
   const sortedAnswers = (question.answers || []).sort((a, b) => {
@@ -159,5 +162,6 @@ const QuestionDetailPage = () => {
     </div>
   );
 };
+
 
 export default QuestionDetailPage;

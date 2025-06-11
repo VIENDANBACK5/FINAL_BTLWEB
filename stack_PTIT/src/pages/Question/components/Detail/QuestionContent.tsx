@@ -29,6 +29,8 @@ const QuestionContent: React.FC<QuestionContentProps> = ({
   const { user } = useModel('user');
   const isQuestionOwner = user && question.user_id === user.id;
   
+  console.log("QuestionContent nhận được:", question);
+  
   // Xử lý trường hợp tags có thể là string[] hoặc object[]
   const renderTags = () => {
     if (!question.tags || question.tags.length === 0) return null;
@@ -62,86 +64,9 @@ const QuestionContent: React.FC<QuestionContentProps> = ({
   };
 
   return (
-    <div className="flex">
-      {/* Cột voting bên trái */}
-      <div className="flex flex-col items-center mr-4 w-[50px] voting">
-        <Button
-          type="text"
-          icon={<ArrowUpOutlined />}
-          onClick={() => handleVote("up")}
-          disabled={isQuestionOwner}
-          title={
-            isQuestionOwner
-              ? "Bạn không thể bình chọn câu hỏi của chính mình"
-              : ""
-          }
-          className="vote-button"
-        />
-        <div className="my-1 font-bold text-lg text-center vote-count">
-          {question.upvotes - question.downvotes}
-        </div>
-        <Button
-          type="text"
-          icon={<ArrowDownOutlined />}
-          onClick={() => handleVote("down")}
-          disabled={isQuestionOwner}
-          title={
-            isQuestionOwner
-              ? "Bạn không thể bình chọn câu hỏi của chính mình"
-              : ""
-          }
-          className="vote-button"
-        />
-        <Tooltip title={isSaved ? "Bỏ lưu câu hỏi" : "Lưu câu hỏi này"}>
-          <Button
-            type="text"
-            icon={
-              isSaved ? (
-                <SaveFilled style={{ color: "#1890ff" }} />
-              ) : (
-                <SaveOutlined />
-              )
-            }
-            className="vote-button"
-            style={{ marginTop: "10px" }}
-            onClick={handleSave}
-            loading={isSavingQuestion}
-          />
-        </Tooltip>
-      </div>
-
-      {/* Nội dung câu hỏi bên phải */}
-      <div className="flex-1">
-        <Card className="mb-6">
-          <div className="content-wrapper">
-            <div
-              className="question-content"
-              dangerouslySetInnerHTML={{ __html: question.content }}
-            />
-          </div>
-          <Space className="mt-4" size={[0, 8]} wrap>
-            {renderTags()}
-          </Space>
-
-          <div className="flex justify-end bg-[var(--bg-primary)] mt-4">
-            <div className="bg-[var(--bg-primary)] p-3 rounded-md">
-              <div className="text-gray-500 text-sm">
-                Đã hỏi vào {question.created_at}
-              </div>
-              <div className="flex items-center mt-2">
-                <Avatar src={question.user?.avatar} />
-                <Link
-                  to={`/users/${question.user?.id}/${question.user?.username?.replace(/\s+/g, "-")}`}
-                >
-                  <Text strong className="ml-2 hover:text-[#1890ff]">
-                    {question.user?.username || "Người dùng ẩn danh"}
-                  </Text>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
+    <div>
+      <h1>{question.title}</h1>
+      <div>{question.content}</div>
     </div>
   );
 };

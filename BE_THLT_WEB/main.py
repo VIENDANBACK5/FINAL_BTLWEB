@@ -34,9 +34,10 @@ if loaded_secret_key: # Chỉ thực hiện các tác vụ phụ thuộc vào SE
     app.include_router(tags_router)
     app.include_router(user_router)
 
+
     app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # hoặc chỉ định ["http://localhost:3000"] nếu muốn an toàn hơn
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

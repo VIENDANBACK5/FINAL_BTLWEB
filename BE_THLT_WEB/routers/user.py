@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ..models import User
-from ..schemas import UserCreate, UserResponse
+from ..models import User, Notification
+from ..schemas import UserCreate, UserResponse, NotificationResponse
 from ..databases import get_db
 from ..utils import get_current_user, hash_password
 
@@ -32,6 +32,9 @@ def update_user(user_update: UserCreate, db: Session = Depends(get_db), current_
     db_user.email = user_update.email
     if user_update.password:  # Chỉ cập nhật mật khẩu nếu có giá trị mới
         db_user.password = hash_password(user_update.password)
+    db_user.avatar = user_update.avatar
+    db_user.bio = user_update.bio
+    db_user.title = user_update.title
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -44,3 +47,8 @@ def delete_user(db: Session = Depends(get_db), current_user: User = Depends(get_
     db.delete(db_user)
     db.commit()
     return {"detail": "User deleted"}
+
+@router.get("/notifications", response_model=list[NotificationResponse])
+def get_notifications(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    notifications = db.query(Notification).filter(Notification.user_id == current_user.id).order_by(Notification.created_at.desc()).all()
+    return notifications

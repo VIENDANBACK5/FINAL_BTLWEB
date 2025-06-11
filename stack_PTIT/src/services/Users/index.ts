@@ -14,8 +14,12 @@ const BASE_URL = "http://localhost:8000";
 
 export const getUserById = async (id: string): Promise<APIResponse<User>> => {
   try {
-    // Gọi API để lấy user theo ID
-    const response = await request.get(`${BASE_URL}/users/${id}`);
+    let response;
+    if (id === 'me') {
+      response = await request.get(`${BASE_URL}/users/me`);
+    } else {
+      response = await request.get(`${BASE_URL}/users/${id}`);
+    }
     return {
       success: true,
       data: response.data

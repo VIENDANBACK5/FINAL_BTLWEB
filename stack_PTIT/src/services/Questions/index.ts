@@ -143,15 +143,8 @@ export async function searchQuestions(params: {
 }
 
 // Lấy câu hỏi theo tag
-export async function getQuestionsByTag(params: {
-  tag: string;
-  page?: number;
-  pageSize?: number;
-  sort?: string;
-  filter?: string;
-}): Promise<PaginatedResponseWithData<Question>> {
-  return request(`${BASE_URL}/questions/tagged`, {
+export async function getQuestionsByTag(tagId: number) {
+  return request(`${BASE_URL}/questions/by_tag/${tagId}`, {
     method: "GET",
-    params,
   });
 }

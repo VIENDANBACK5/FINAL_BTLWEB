@@ -9,6 +9,7 @@ import {
   Typography,
   Spin,
   Tooltip,
+  Avatar,
 } from "antd";
 import { Link, useModel } from "umi";
 import React, { useEffect } from "react";
@@ -20,6 +21,7 @@ import {
   QuestionCircleOutlined,
   CommentOutlined,
   TagOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 
 const { TabPane } = Tabs;
@@ -57,6 +59,9 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
         <h1 className="mb-2 text-primary text-2xl">Trạng thái</h1>
         <div className="bg-[var(--bg-primary)] bg-primary mb-2 p-4 border theme-border border-border rounded-lg">
           <Row gutter={16}>
+            <Col span={24} className="flex justify-center mb-4">
+              <Avatar size={100} src={user?.avatar || 'https://placehold.co/100?text=Avatar'} icon={<UserOutlined />} />
+            </Col>
             <Col span={12}>
               <Statistic
                 title="Danh tiếng"
@@ -95,6 +100,9 @@ const Profile: React.FC<ProfileProps> = ({ user }) => {
           <div className="bg-[var(--bg-primary)] bg-primary mb-2 p-4 border theme-border border-border rounded-lg">
             <p className="text-primary">
               {user?.bio || "Chưa có thông tin giới thiệu"}
+            </p>
+            <p className="text-secondary mt-2">
+              {user?.title || ""}
             </p>
           </div>
         </div>

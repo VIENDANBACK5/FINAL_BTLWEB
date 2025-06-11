@@ -55,15 +55,15 @@ const ProfileSetting: React.FC = () => {
           initialValues={{
             username: user?.username,
             email: user?.email,
-            bio: user?.bio,
-            title: user?.title,
+            bio: user?.bio || '',
+            title: user?.title || '',
             role: user?.role,
           }}
         >
           {/* Avatar Section */}
           <Form.Item label="Ảnh đại diện">
             <div className="flex items-center gap-4">
-              <Avatar size={100} src={user?.avatar} icon={<UserOutlined />} />
+              <Avatar size={100} src={user?.avatar || 'https://placehold.co/100?text=Avatar'} icon={<UserOutlined />} />
               <Upload
                 name="avatar"
                 showUploadList={false}

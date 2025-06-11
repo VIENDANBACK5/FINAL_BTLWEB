@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link, history } from "umi";
 import {
   Layout,
@@ -14,7 +14,7 @@ import {
   Tag,
   AutoComplete,
 } from "antd";
-import { LogoutOutlined, SearchOutlined, TagOutlined, QuestionCircleOutlined } from "@ant-design/icons";
+import { LogoutOutlined, SearchOutlined, TagOutlined, QuestionCircleOutlined, FileTextOutlined } from "@ant-design/icons";
 import { UserOutlined } from "@ant-design/icons";
 import { useModel } from "umi";
 import type { MenuProps } from "antd";
@@ -33,6 +33,7 @@ const HeaderBasicLauyout: React.FC = () => {
   const [searchValue, setSearchValue] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadUserFromStorage();
@@ -58,24 +59,30 @@ const HeaderBasicLauyout: React.FC = () => {
     },
   ];
 
-  // Fetch suggestions when search value changes
-  const fetchSuggestions = async (keyword: string) => {
+  // Debounced fetch suggestions
+  const fetchSuggestions = (keyword: string) => {
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     if (!keyword.trim()) {
       setSuggestions([]);
+      setLoadingSuggestions(false);
       return;
     }
-
     setLoadingSuggestions(true);
-    try {
-      const response = await getSearchSuggestions(keyword);
-      if (response.success) {
-        setSuggestions(response.data);
+    debounceTimeout.current = setTimeout(async () => {
+      try {
+        const response = await getSearchSuggestions(keyword);
+        if (response.success) {
+          setSuggestions(response.data);
+        } else {
+          setSuggestions([]);
+        }
+      } catch (error) {
+        setSuggestions([]);
+        console.error("Error fetching suggestions:", error);
+      } finally {
+        setLoadingSuggestions(false);
       }
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-    } finally {
-      setLoadingSuggestions(false);
-    }
+    }, 300);
   };
 
   // Search templates for quick access
@@ -135,70 +142,89 @@ const HeaderBasicLauyout: React.FC = () => {
     // Keep popover open so user can see the template filled
   };
 
+  // Hàm highlight keyword trong suggestion
+  const highlightKeyword = (text: string, keyword: string) => {
+    if (!keyword) return text;
+    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return (
+      <span>
+        {text.split(regex).map((part, i) =>
+          regex.test(part) ? <span key={i} style={{ background: '#ffe58f', fontWeight: 600 }}>{part}</span> : part
+        )}
+      </span>
+    );
+  };
+
   // Search hint content with suggestions and templates
   const searchHintContent = (
     <div className="bg-white shadow-lg p-4 w-[800px] max-h-[600px] overflow-y-auto">
-      <div className="mb-4">
-        <h3 className="mb-2 font-bold">🔍 Mẫu tìm kiếm - Click để thử</h3>
-
-        {searchTemplates.map((category, categoryIndex) => (
-          <div key={categoryIndex} className="mb-4">
-            <h4 className="mb-2 font-semibold text-blue-600">{category.category}</h4>
-            <div className="gap-1 grid grid-cols-1">
-              {category.items.map((item, itemIndex) => (
-                <div
-                  key={itemIndex}
-                  className="flex justify-between items-center bg-gray-50 hover:bg-blue-50 p-2 rounded transition-colors cursor-pointer"
-                  onClick={() => handleTemplateClick(item.text)}
-                >
-                  <div className="flex-1">
-                    <code className="bg-white mr-3 px-2 py-1 rounded font-medium text-blue-600">{item.text}</code>
-                    <span className="text-gray-600 text-sm">{item.description}</span>
-                  </div>
-                  <Button
-                    type="link"
-                    size="small"
-                    className="text-blue-500"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSearch(item.text);
-                    }}
-                  >
-                    Tìm →
-                  </Button>
+      {(!searchValue || searchValue.trim() === "") && (
+        <>
+          <div className="mb-4">
+            <h3 className="mb-2 font-bold">🔍 Mẫu tìm kiếm - Click để thử</h3>
+            {searchTemplates.map((category, categoryIndex) => (
+              <div key={categoryIndex} className="mb-4">
+                <h4 className="mb-2 font-semibold text-blue-600">{category.category}</h4>
+                <div className="gap-1 grid grid-cols-1">
+                  {category.items.map((item, itemIndex) => (
+                    <div
+                      key={itemIndex}
+                      className="flex justify-between items-center bg-gray-50 hover:bg-blue-50 p-2 rounded transition-colors cursor-pointer"
+                      onClick={() => handleTemplateClick(item.text)}
+                    >
+                      <div className="flex-1">
+                        <code className="bg-white mr-3 px-2 py-1 rounded font-medium text-blue-600">{item.text}</code>
+                        <span className="text-gray-600 text-sm">{item.description}</span>
+                      </div>
+                      <Button
+                        type="link"
+                        size="small"
+                        className="text-blue-500"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSearch(item.text);
+                        }}
+                      >
+                        Tìm →
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+                {categoryIndex < searchTemplates.length - 1 && <Divider className="my-3" />}
+              </div>
+            ))}
+          </div>
+          <div className="bg-blue-50 mb-4 p-3 rounded-lg">
+            <h4 className="mb-2 font-semibold">💡 Cú pháp tìm kiếm nâng cao</h4>
+            <div className="space-y-1 text-sm">
+              <div>
+                <code className="bg-white px-1">[tag]</code> - Tìm theo tag
+              </div>
+              <div>
+                <code className="bg-white px-1">"phrase"</code> - Tìm chính xác cụm từ
+              </div>
+              <div>
+                <code className="bg-white px-1">votes{">"}=n</code> - Lọc theo votes ({">"}=, {"<"}=, {">"}, {"<"}, =)
+              </div>
+              <div>
+                <code className="bg-white px-1">answers{">"}=n</code> - Lọc theo số câu trả lời
+              </div>
+              <div>
+                <code className="bg-white px-1">comments{">"}=n</code> - Lọc theo số comments
+              </div>
+              <div>
+                <code className="bg-white px-1">user:id</code> - Tìm câu hỏi của người dùng có ID cụ thể
+              </div>
             </div>
-            {categoryIndex < searchTemplates.length - 1 && <Divider className="my-3" />}
           </div>
-        ))}
-      </div>
-
-      <div className="bg-blue-50 mb-4 p-3 rounded-lg">
-        <h4 className="mb-2 font-semibold">💡 Cú pháp tìm kiếm nâng cao</h4>
-        <div className="space-y-1 text-sm">
-          <div>
-            <code className="bg-white px-1">[tag]</code> - Tìm theo tag
-          </div>
-          <div>
-            <code className="bg-white px-1">"phrase"</code> - Tìm chính xác cụm từ
-          </div>
-          <div>
-            <code className="bg-white px-1">votes{">"}=n</code> - Lọc theo votes ({">"}=, {"<"}=, {">"}, {"<"}, =)
-          </div>
-          <div>
-            <code className="bg-white px-1">answers{">"}=n</code> - Lọc theo số câu trả lời
-          </div>
-          <div>
-            <code className="bg-white px-1">comments{">"}=n</code> - Lọc theo số comments
-          </div>
-          <div>
-            <code className="bg-white px-1">user:id</code> - Tìm câu hỏi của người dùng có ID cụ thể
-          </div>
+        </>
+      )}
+      {loadingSuggestions && (
+        <div className="py-2 text-center">
+          <span className="text-blue-500">Đang tải gợi ý...</span>
         </div>
-      </div>
-
-      {suggestions.length > 0 && (
+      )}
+      {suggestions.length > 0 && !loadingSuggestions && (
         <div>
           <Divider className="my-3" />
           <h4 className="mb-2 font-semibold">📋 Gợi ý từ hệ thống</h4>
@@ -216,22 +242,31 @@ const HeaderBasicLauyout: React.FC = () => {
                       <TagOutlined className="mr-2 text-blue-500" />
                     ) : item.type === "user" ? (
                       <UserOutlined className="mr-2 text-purple-500" />
+                    ) : item.type === "content" ? (
+                      <FileTextOutlined className="mr-2 text-orange-500" />
                     ) : (
                       <QuestionCircleOutlined className="mr-2 text-green-500" />
                     )}
-                    <Text>{item.text}</Text>
+                    <Text>{highlightKeyword(item.text, searchValue)}</Text>
+                    {item.type === "content" && (
+                      <Text type="secondary" className="ml-2">- NỘI DUNG</Text>
+                    )}
+                    {item.type === "title" && (
+                      <Text type="secondary" className="ml-2">- TIÊU ĐỀ</Text>
+                    )}
                     {item.description && (
                       <Text type="secondary" className="ml-2">- {item.description}</Text>
                     )}
                   </div>
-                  <Tag color={item.type === "tag" ? "blue" : item.type === "user" ? "purple" : "green"}>{item.count}</Tag>
+                  {item.count !== undefined && (
+                    <Tag color={item.type === "tag" ? "blue" : item.type === "user" ? "purple" : item.type === "content" ? "orange" : "green"}>{item.count}</Tag>
+                  )}
                 </div>
               </List.Item>
             )}
           />
         </div>
       )}
-
       {searchValue && suggestions.length === 0 && !loadingSuggestions && (
         <div>
           <Divider className="my-3" />

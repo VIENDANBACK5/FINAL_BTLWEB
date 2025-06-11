@@ -14,22 +14,27 @@ export default () => {
     const fetchQuestions = async () => {
         setLoading(true);
         try {
-          const result = await getQuestions({
+          const response = await getQuestions({
             page,
             pageSize,
             sort,
             filter,
           });
           
-          if (Array.isArray(result)) {
-            setQuestions(result);
-            setTotal(result.length);
-          } else if (result?.success) {
-            setQuestions(result.data.list);
-            setTotal(result.data.total);
+          let questions: Question[] = [];
+          let total = 0;
+          if (Array.isArray(response)) {
+            questions = response;
+            total = response.length;
+          } else if (response && Array.isArray(response.questions)) {
+            questions = response.questions;
+            total = response.total || response.questions.length || 0;
           } else {
-            console.error("Failed to fetch questions:", result);
+            questions = [];
+            total = 0;
           }
+          setQuestions(questions);
+          setTotal(total);
         } catch (error) {
           console.error("Error fetching questions:", error);
         } finally {
